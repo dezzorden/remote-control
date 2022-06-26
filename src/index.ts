@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import WebSocket, { createWebSocketStream, WebSocketServer } from 'ws';
+import { drawCircle } from './circle';
 import { Commands } from './commands';
 import { getMousePos, moveDown, moveLeft, moveRight, moveUp } from './mouse';
-
+import { drawRectangle, drawSquare } from './square';
 
 const PORT =  8080;
 
@@ -12,6 +13,9 @@ const commands = {
 	[Commands.RIGHT]: moveRight,
 	[Commands.UP]: moveUp,
 	[Commands.DOWN]: moveDown,
+	[Commands.DRAW_CIRCLE]: drawCircle,
+	[Commands.DRAW_SQUARE]: drawSquare,
+	[Commands.DRAW_RECTANGLE]: drawRectangle,
 }
 
 const wss = new WebSocketServer({
@@ -34,6 +38,7 @@ wss.on('connection', (ws, req) => {
 		if (command in commands) {
 			try {
 				const result = await commands[command](args);
+				console.log('success:', result);
 				webSocketStream.write(result + '\0');
 			} catch (err: any) {
 				console.error('failed:', command, ', got error:', err.message);
@@ -50,4 +55,12 @@ wss.on('close', () => {
 	console.log('Server shutdown');
 });
 
+process.on('SIGINT', () => {
+	wss.clients.forEach((client) => {
+		if (client.readyState === WebSocket.OPEN) {
+			client.close();
+		}
+	});
 
+	wss.close();
+});
